@@ -22,7 +22,7 @@ app = Flask(__name__)
 
 # تحميل الموديل من Google Drive إذا لم يكن موجودًا
 file_id = "1EXP6xmb8lEYI8_NdwbcDEwTUn1-4JyGG"
-checkpoint_path = "best_model_checkpoint_epoch_17_NEW.pth"
+checkpoint_path = "best_model_checkpoint_epoch_17 NEW.pth"
 
 if not os.path.exists(checkpoint_path):
     print("⬇️ Downloading model file...")
@@ -81,5 +81,5 @@ def predict_api():
     })
 
 if __name__ == '__main__':
-    # تشغيل الخادم المدمج في Flask بدلاً من Gunicorn
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))  # يأخذ المنفذ من المتغير البيئي، وإلا يستخدم 5000 كقيمة افتراضية
+    app.run(host='0.0.0.0', port=port)
