@@ -6,8 +6,8 @@ from PIL import Image
 import io
 import numpy as np
 import pandas as pd
-import gdown
 import os
+from huggingface_hub import hf_hub_download
 
 # تحميل البيانات
 info = pd.read_csv("disease_info.csv", encoding="latin1")
@@ -20,17 +20,9 @@ sup = sup.reset_index(drop=True)
 # إعداد Flask
 app = Flask(__name__)
 
-# تحميل الموديل من Google Drive إذا لم يكن موجودًا
-file_id = "1EXP6xmb8lEYI8_NdwbcDEwTUn1-4JyGG"
-checkpoint_path = "best_model_checkpoint_epoch_17 NEW.pth"
-
-if not os.path.exists(checkpoint_path):
-    print("⬇️ Downloading model file...")
-    url = f"https://drive.google.com/uc?id={file_id}"
-    gdown.download(url, checkpoint_path, quiet=False)
-    print("✅ Model downloaded successfully.")
-else:
-    print("✅ Model file already exists.")
+# تحميل الموديل من Hugging Face
+checkpoint_path = hf_hub_download(repo_id="graduationbisho/plant-diagnosis", filename="best_model_checkpoint_epoch_17_NEW.pth")
+print(f"✅ Model downloaded to {checkpoint_path}")
 
 # تحميل الموديل
 model = models.resnet50(pretrained=True)
@@ -55,12 +47,16 @@ def predict(image):
         outputs = model(img)
         _, predicted = torch.max(outputs, 1)
         index = predicted.item()
-        
-    disease_name = info["disease_name"][index]
-    description = info["description"][index]
-    steps = info["Possible Steps"][index]
-    supplement_name = sup['supplement name'][index]
-    supplement_image = sup['supplement image'][index]
+    
+    # 🛑 حماية من الإندكس الغلط
+    if index < 0 or index >= len(info):
+        return "Unknown", "No description available", "No steps available", "No supplement", "No image"
+    
+    disease_name = info["disease_name"].iloc[index]
+    description = info["description"].iloc[index]
+    steps = info["Possible Steps"].iloc[index]
+    supplement_name = sup['supplement name'].iloc[index]
+    supplement_image = sup['supplement image'].iloc[index]
     
     return disease_name, description, steps, supplement_name, supplement_image
 
@@ -80,5 +76,6 @@ def predict_api():
         "supplement_image": supplement_image
     })
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+# ✅ دعم `PORT` للـ Render
+port = int(os.environ.get("PORT", 8080))  
+app.run(host='0.0.0.0', port=port)
